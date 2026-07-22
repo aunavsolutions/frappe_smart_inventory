@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERPNext - Inventory Quality Inspection (IQI-2026-00042)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --sidebar-bg: #f8f9fa;
+            --navbar-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --primary-blue: #171717;
+            --frappe-blue: #2490ef;
+            --bg-main: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; }
+        body { background-color: #f4f5f7; color: var(--text-main); display: flex; flex-direction: column; height: 100vh; font-size: 13px; }
+
+        /* Top Navbar */
+        .navbar { height: 44px; background: var(--navbar-bg); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+        .navbar-brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
+        .search-bar { width: 360px; background: #edf2f7; border-radius: 6px; padding: 6px 12px; font-size: 12px; border: none; outline: none; }
+        .user-menu { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 26px; height: 26px; background: #3b82f6; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; }
+
+        /* App Layout */
+        .app-body { display: flex; flex: 1; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: 220px; background: #ffffff; border-right: 1px solid var(--border-color); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+        .sidebar-item { padding: 8px 12px; border-radius: 6px; color: var(--text-main); text-decoration: none; display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 13px; cursor: pointer; }
+        .sidebar-item:hover, .sidebar-item.active { background: #f1f5f9; color: var(--frappe-blue); }
+
+        /* Main Workspace */
+        .workspace { flex: 1; background: #ffffff; overflow-y: auto; display: flex; flex-direction: column; }
+
+        /* Form Header */
+        .form-header { padding: 16px 32px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fff; position: sticky; top: 0; z-index: 10; }
+        .title-area { display: flex; align-items: center; gap: 12px; }
+        .doc-title { font-size: 20px; font-weight: 700; color: #0f172a; }
+        .status-badge { background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 12px; font-weight: 600; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
+        .status-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; }
+        
+        .action-buttons { display: flex; gap: 8px; }
+        .btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #cbd5e1; background: white; transition: all 0.2s; }
+        .btn:hover { background: #f8fafc; }
+        .btn-primary { background: var(--frappe-blue); color: white; border: none; }
+        .btn-primary:hover { background: #1d4ed8; }
+
+        /* Tabs */
+        .tabs-header { display: flex; gap: 24px; padding: 0 32px; border-bottom: 1px solid var(--border-color); background: #fff; }
+        .tab-item { padding: 12px 0; font-weight: 500; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab-item.active { color: var(--frappe-blue); border-bottom-color: var(--frappe-blue); font-weight: 600; }
+
+        /* Form Content */
+        .form-content { padding: 24px 32px; max-width: 1000px; margin: 0 auto; width: 100%; }
+        .form-section { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; letter-spacing: 0.5px; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: 12px; font-weight: 500; color: #475569; margin-bottom: 4px; }
+        .form-input { width: 100%; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; background: #fff; outline: none; }
+        .form-input:focus { border-color: var(--frappe-blue); box-shadow: 0 0 0 2px rgba(36,144,239,0.15); }
+        .form-input[readonly] { background: #f8fafc; color: #64748b; }
+
+        /* Data Table */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        .data-table th { background: #f8fafc; text-align: left; padding: 8px 12px; border: 1px solid #e2e8f0; color: #475569; font-weight: 600; }
+        .data-table td { padding: 8px 12px; border: 1px solid #e2e8f0; }
+
+        /* Certificate Jinja Render */
+        .cert-paper { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navbar -->
+    <div class="navbar">
+        <div class="navbar-brand">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2490ef" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <span>ERPNext</span>
+        </div>
+        <input type="text" class="search-bar" value="Buscar o ir a... (Ctrl + K)" readonly>
+        <div class="user-menu">
+            <span>Antx (Developer)</span>
+            <div class="avatar">A</div>
+        </div>
+    </div>
+
+    <div class="app-body">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-item active">📦 Smart Inventory</div>
+            <div class="sidebar-item">🔍 Quality Inspections</div>
+            <div class="sidebar-item">🏬 Stock Entries</div>
+            <div class="sidebar-item">🏭 Manufacturing</div>
+            <div class="sidebar-item">📊 Script Reports</div>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="workspace">
+            
+            <!-- Header -->
+            <div class="form-header">
+                <div class="title-area">
+                    <span class="doc-title">IQI-2026-00042</span>
+                    <span class="status-badge"><span class="status-dot"></span> Passed - Grade A</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn" onclick="alert('Invocando Jinja Print Format PDF...')">🖨️ Imprimir Certificado</button>
+                    <button class="btn" onclick="switchTab('report-tab')">📊 Ver Script Report</button>
+                    <button class="btn btn-primary">Guardar</button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs-header">
+                <div class="tab-item active" onclick="openTab(event, 'form-tab')">Formulario DocType</div>
+                <div class="tab-item" onclick="openTab(event, 'cert-tab')">Certificado (Print Format)</div>
+                <div class="tab-item" onclick="openTab(event, 'report-tab')">Script Report (Analítica)</div>
+            </div>
+
+            <!-- Form Content -->
+            <div class="form-content">
+                
+                <!-- TAB 1: FORM -->
+                <div id="form-tab" class="tab-content active">
+                    <div class="form-section">
+                        <div class="section-title">Información de Recepción / Almacén</div>
+                        <div class="grid-2">
+                            <div>
+                                <div class="form-group">
+                                    <label class="form-label">Fecha de Inspección</label>
+                                    <input type="date" class="form-input" value="2026-07-22">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Inspector Responsable</label>
+                                    <input type="text" class="form-input" value="antx.dev@empresa.com" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Proveedor</label>
+                                    <input type="text" class="form-input" value="SUPP-2026-LOGISTICS-SA" readonly>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="form-group">
+                                    <label class="form-label">Lote (Batch ID)</label>
+                                    <input type="text" class="form-input" value="BATCH-2026-07-LOT89" readonly style="font-weight: bold; color: #1e40af;">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Ítem / Artículo</label>
+                                    <input type="text" class="form-input" value="RAW-MAT-LEATHER-01" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Estado de Trazabilidad</label>
+                                    <input type="text" class="form-input" value="Approved (Bloqueo de Stock liberado)" readonly style="color: #166534; font-weight: 600;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-title">Muestreo y Tolerancia (Cálculo Automático Client Script JS)</div>
+                        <div class="grid-2">
+                            <div>
+                                <div class="form-group">
+                                    <label class="form-label">Muestra Inspeccionada (Unidades/sqft)</label>
+                                    <input type="number" id="sample_size" class="form-input" value="500" oninput="calculate()">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Unidades Defectuosas Encontradas</label>
+                                    <input type="number" id="defective_units" class="form-input" value="8" readonly>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="form-group">
+                                    <label class="form-label">Unidades Aceptadas Neta</label>
+                                    <input type="number" id="accepted_units" class="form-input" value="492" readonly style="font-weight: bold;">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">% Tasa de Merma / Defecto</label>
+                                    <input type="text" id="defect_pct" class="form-input" value="1.60%" readonly style="font-weight: bold; color: #166534;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="section-title">Detalle de Defectos Inspeccionados (Child Table)</div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tipo de Defecto</th>
+                                    <th>Cantidad</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Imperfección de Grano / Marcas de Superficie</td>
+                                    <td>5</td>
+                                    <td><button class="btn" style="padding: 2px 6px; font-size: 10px;">Eliminar</button></td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Desviación de Calibre / Grosor Inconsistente</td>
+                                    <td>3</td>
+                                    <td><button class="btn" style="padding: 2px 6px; font-size: 10px;">Eliminar</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 2: CERTIFICATE -->
+                <div id="cert-tab" class="tab-content">
+                    <div class="cert-paper">
+                        <div style="border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-bottom: 20px; text-align: center;">
+                            <h2 style="font-size: 18px; letter-spacing: 1px; font-weight: 700;">CERTIFICADO DE INSPECCIÓN DE CALIDAD DE INVENTARIO</h2>
+                            <p style="font-size: 11px; color: #64748b;">Smart Inventory Suite - Plantilla Jinja2 Renderizada</p>
+                        </div>
+                        <table class="data-table">
+                            <tr><th>No. Registro:</th><td>IQI-2026-00042</td><th>Fecha:</th><td>22/07/2026</td></tr>
+                            <tr><th>Proveedor:</th><td>SUPP-2026-LOGISTICS-SA</td><th>Lote:</th><td>BATCH-2026-07-LOT89</td></tr>
+                            <tr><th>Dictamen Final:</th><td colspan="3"><span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">PASSED - GRADE A</span></td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB 3: REPORT -->
+                <div id="report-tab" class="tab-content">
+                    <div class="form-section">
+                        <div class="section-title">Batch Defect Analytics (Script Report Python + SQL + Frappe Charts)</div>
+                        <div style="height: 260px; margin-bottom: 20px;">
+                            <canvas id="myChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            let i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-item");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            if (evt) evt.currentTarget.classList.add("active");
+
+            if(tabName === 'report-tab') {
+                renderChart();
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-item')[2].click();
+        }
+
+        function calculate() {
+            let sample = parseFloat(document.getElementById('sample_size').value) || 0;
+            let defects = parseFloat(document.getElementById('defective_units').value) || 0;
+            let accepted = sample - defects;
+            let pct = sample > 0 ? (defects / sample) * 100 : 0;
+
+            document.getElementById('accepted_units').value = accepted > 0 ? accepted : 0;
+            document.getElementById('defect_pct').value = pct.toFixed(2) + '%';
+        }
+
+        let chartInstance = null;
+        function renderChart() {
+            if (chartInstance) return;
+            const ctx = document.getElementById('myChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['SUPP-LOGISTICS-SA', 'CURTIDURIA-DEL-NORTE', 'FABRIC-GLOBAL-INC'],
+                    datasets: [{
+                        label: 'Unidades Defectuosas por Proveedor (sqft/unid)',
+                        data: [8, 24, 15],
+                        backgroundColor: '#ef4444'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+    </script>
+</body>
+</html>
