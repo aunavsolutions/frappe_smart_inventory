@@ -5,6 +5,11 @@ app_description = "Advanced Quality Control & Batch Traceability for ERPNext Sto
 app_email = "dev@example.com"
 app_license = "MIT"
 
+# Hooks de Instalación y Configuración Automática
+# -----------------------------------------------
+after_install = "frappe_smart_inventory.setup.install.after_install"
+
+
 # Hooks de Documentos en ERPNext Nativo
 # ------------------------------------
 doc_events = {
