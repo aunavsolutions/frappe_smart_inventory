@@ -52,7 +52,7 @@ frappe_smart_inventory/
 
 ```bash
 # 1. Clonar o descargar la app en el entorno bench
-bench get-app https://github.com/TU-USUARIO/frappe_smart_inventory.git
+bench get-app https://github.com/aunavsolutions/frappe_smart_inventory.git
 
 # 2. Instalar la app en tu sitio de ERPNext
 bench --site tu-sitio.local install-app frappe_smart_inventory
