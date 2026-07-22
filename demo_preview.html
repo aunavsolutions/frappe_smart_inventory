@@ -99,11 +99,11 @@
     <div class="app-body">
         <!-- Sidebar -->
         <div class="sidebar">
-            <div class="sidebar-item active">📦 Smart Inventory</div>
-            <div class="sidebar-item">🔍 Quality Inspections</div>
-            <div class="sidebar-item">🏬 Stock Entries</div>
-            <div class="sidebar-item">🏭 Manufacturing</div>
-            <div class="sidebar-item">📊 Script Reports</div>
+            <div class="sidebar-item active" onclick="openTab(null, 'form-tab')">📦 Smart Inventory</div>
+            <div class="sidebar-item" onclick="openTab(null, 'form-tab')">🔍 Quality Inspections</div>
+            <div class="sidebar-item" onclick="alert('Redirigiendo a formulario Stock Entry nativo...')">🏬 Stock Entries</div>
+            <div class="sidebar-item" onclick="alert('Navegando a módulo Manufacturing...')">🏭 Manufacturing</div>
+            <div class="sidebar-item" onclick="openTab(null, 'report-tab')">📊 Script Reports</div>
         </div>
 
         <!-- Main Workspace -->
